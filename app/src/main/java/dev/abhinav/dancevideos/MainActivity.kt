@@ -9,12 +9,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +36,39 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFram
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 import dev.abhinav.dancevideos.ui.theme.DanceVideosTheme
 
+val song = listOf (
+    Song(
+        name = "Mauja Hi Mauja",
+        videoId = "v=PaDaoNnOQaM",
+        startSecond = 45f,
+        pauseInterval = 30f
+    ),
+    Song(
+        name = "Ek Pal Ka Jeena",
+        videoId = "v=aGbPyM6lzBs",
+        startSecond = 60f,
+        pauseInterval = 43f
+    ),
+    Song(
+        name = "Senorita",
+        videoId = "v=2Z0Put0teCM",
+        startSecond = 120f,
+        pauseInterval = 20f
+    ),
+    Song(
+        name = "Badtameez Dil",
+        videoId = "v=II2EO3Nw4m0",
+        startSecond = 103f,
+        pauseInterval = 20f
+    ),
+    Song(
+        name = "Bhool Bhulaiyaa",
+        videoId = "v=B9_nql5xBFo",
+        startSecond = 125f,
+        pauseInterval = 17f
+    ),
+)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,18 +79,20 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp)
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(4.dp)
                     ) {
-                        MusicVideoText(
-                            header = "Mauja Hi Mauja"
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        YoutubeVideoPlayer(
-                            youtubeURL = "https://www.youtube.com/watch?v=PaDaoNnOQaM",
-                            startSecond = 45f,
-                            pauseInterval = 30f
-                        )
+                       items(song.size) { index ->
+                            MusicVideoText(
+                                header = song[index].name
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            YoutubeVideoPlayer(
+                                youtubeURL = URL + song[index].videoId,
+                                startSecond = song[index].startSecond,
+                                pauseInterval = song[index].pauseInterval
+                            )
+                        }
                     }
                 }
             }
