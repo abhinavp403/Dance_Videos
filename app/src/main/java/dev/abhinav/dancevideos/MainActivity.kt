@@ -176,6 +176,7 @@ fun YoutubeVideoPlayer(
                 isPlaying.invoke(false)
                 youTubePlayer.pause()
                 onVideoEnded.invoke()
+                youTubePlayer.seekTo(startSecond)
             }
         }
     }
