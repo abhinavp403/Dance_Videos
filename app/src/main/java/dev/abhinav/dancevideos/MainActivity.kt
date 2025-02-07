@@ -3,13 +3,20 @@ package dev.abhinav.dancevideos
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,7 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -32,38 +39,40 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.FullscreenListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+import dev.abhinav.dancevideos.MainActivity.Companion.URL
 import dev.abhinav.dancevideos.ui.theme.DanceVideosTheme
 
 val song = listOf (
     Song(
         name = "Mauja Hi Mauja",
-        videoId = "v=PaDaoNnOQaM",
+        videoId = splitLinkForVideoId(URL + "v=PaDaoNnOQaM"),
         startSecond = 45f,
         pauseInterval = 30f
     ),
     Song(
         name = "Ek Pal Ka Jeena",
-        videoId = "v=aGbPyM6lzBs",
+        videoId = splitLinkForVideoId(URL + "v=aGbPyM6lzBs"),
         startSecond = 60f,
         pauseInterval = 43f
     ),
     Song(
         name = "Senorita",
-        videoId = "v=2Z0Put0teCM",
+        videoId = splitLinkForVideoId(URL + "v=2Z0Put0teCM"),
         startSecond = 120f,
         pauseInterval = 20f
     ),
     Song(
         name = "Badtameez Dil",
-        videoId = "v=II2EO3Nw4m0",
+        videoId = splitLinkForVideoId(URL + "v=II2EO3Nw4m0"),
         startSecond = 103f,
         pauseInterval = 20f
     ),
     Song(
         name = "Bhool Bhulaiyaa",
-        videoId = "v=B9_nql5xBFo",
+        videoId = splitLinkForVideoId(URL + "v=B9_nql5xBFo"),
         startSecond = 125f,
         pauseInterval = 17f
     ),
@@ -79,20 +88,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(4.dp)
-                    ) {
-                       items(song.size) { index ->
-                            MusicVideoText(
-                                header = song[index].name
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            YoutubeVideoPlayer(
-                                youtubeURL = URL + song[index].videoId,
-                                startSecond = song[index].startSecond,
-                                pauseInterval = song[index].pauseInterval
-                            )
-                        }
+                    Column {
+                        YoutubeVideoPlayer(songList = song)
                     }
                 }
             }
@@ -100,7 +97,7 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        private const val URL = "https://www.youtube.com/watch?"
+        const val URL = "https://www.youtube.com/watch?"
     }
 }
 
@@ -118,113 +115,172 @@ fun MusicVideoText(
 
 @Composable
 fun YoutubeVideoPlayer(
-    youtubeURL: String?,
+    songList: List<Song>,
     isPlaying: (Boolean) -> Unit = {},
-    startSecond: Float,
-    pauseInterval: Float,
     isLoading: (Boolean) -> Unit = {},
     onVideoEnded: () -> Unit = {}
 ){
     val context = LocalContext.current
+    val activity = context.findActivity()
     val mLifeCycleOwner = LocalLifecycleOwner.current
-    val videoId = splitLinkForVideoId(youtubeURL)
-    var player : YouTubePlayer ?= null
-    val playerFragment = YouTubePlayerView(context)
     var currentSecond: Float
+    var activeFullscreenPlayer by remember { mutableStateOf<String?>(null) }
+    val fullscreenContainers = remember { mutableStateMapOf<String, FrameLayout>() }
+    val players = remember { mutableStateMapOf<String, YouTubePlayer>() }
+    val videoIds = songList.map { it.videoId }
 
-    val playerStateListener = object : AbstractYouTubePlayerListener() {
-        override fun onReady(youTubePlayer: YouTubePlayer) {
-            super.onReady(youTubePlayer)
-            player = youTubePlayer
-            youTubePlayer.cueVideo(videoId, startSecond)
-        }
+    // Handle back press behavior
+//    BackHandler(enabled = activeFullscreenPlayer != null) {
+//        if (activeFullscreenPlayer != null) {
+//            //player?.toggleFullscreen()
+//            activeFullscreenPlayer = null
+//        } else {
+//            activity?.finish()
+//        }
+//    }
 
-        override fun onStateChange(
-            youTubePlayer: YouTubePlayer,
-            state: PlayerConstants.PlayerState
-        ) {
-            super.onStateChange(youTubePlayer, state)
-            when(state){
-                PlayerConstants.PlayerState.BUFFERING -> {
-                    isLoading.invoke(true)
-                    isPlaying.invoke(false)
+    Box(Modifier.fillMaxSize()) {
+        if (activeFullscreenPlayer != null) {
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                factory = { fullscreenContainers[activeFullscreenPlayer]!! }
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                items(videoIds.size) { index ->
+                    MusicVideoText(
+                        header = song[index].name
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    AndroidView(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f),
+                        factory = { context ->
+                            val youTubePlayerView = YouTubePlayerView(context).apply {
+                                enableAutomaticInitialization = false
+                                fullscreenContainers[videoIds[index]] = FrameLayout(context)
+
+                                val playerOptions = IFramePlayerOptions.Builder()
+                                    .controls(1)
+                                    .fullscreen(1) // Enable fullscreen button
+                                    .autoplay(0)
+                                    .rel(0)
+                                    .build()
+
+                                addFullscreenListener(object : FullscreenListener {
+                                    override fun onEnterFullscreen(fullscreenView: View, exitFullscreen: () -> Unit) {
+                                        Log.d("YouTubePlayer", "onEnterFullscreen: ${ players[videoIds[index]].toString()}")
+                                        activeFullscreenPlayer = videoIds[index]
+
+                                        // Detach the fullscreen view from its current parent
+                                        (fullscreenView.parent as? ViewGroup)?.removeView(
+                                            fullscreenView
+                                        )
+
+                                        // Add fullscreen view to its container
+                                        fullscreenContainers[videoIds[index]]?.apply {
+                                            visibility = View.VISIBLE
+                                            removeAllViews()
+                                            addView(fullscreenView)
+                                        }
+
+                                        // Switch to landscape orientation
+                                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                                        players[videoIds[index]]?.play()
+                                    }
+
+                                    override fun onExitFullscreen() {
+                                        Log.d("YouTubePlayer", "onExitFullscreen: ${ players[videoIds[index]].toString()}")
+                                        activeFullscreenPlayer = null
+
+                                        // Clear fullscreen container
+                                        fullscreenContainers[videoIds[index]]?.apply {
+                                            removeAllViews()
+                                            visibility = View.GONE
+                                        }
+
+                                        // Switch back to portrait orientation
+                                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                    }
+                                })
+
+                                initialize(object : AbstractYouTubePlayerListener() {
+                                    override fun onReady(youTubePlayer: YouTubePlayer) {
+                                        players[videoIds[index]] = youTubePlayer
+                                        youTubePlayer.cueVideo(videoIds[index], songList[index].startSecond)
+                                    }
+
+                                    override fun onError(youTubePlayer: YouTubePlayer, error: PlayerConstants.PlayerError) {
+                                        super.onError(youTubePlayer, error)
+                                        Log.e("iFramePlayer Error Reason", "$error")
+                                    }
+
+                                    override fun onStateChange(youTubePlayer: YouTubePlayer, state: PlayerConstants.PlayerState) {
+                                        super.onStateChange(youTubePlayer, state)
+                                        when(state){
+                                            PlayerConstants.PlayerState.BUFFERING -> {
+                                                isLoading.invoke(true)
+                                                isPlaying.invoke(false)
+                                            }
+                                            PlayerConstants.PlayerState.PLAYING -> {
+                                                isLoading.invoke(false)
+                                                isPlaying.invoke(true)
+                                            }
+                                            PlayerConstants.PlayerState.ENDED -> {
+                                                isPlaying.invoke(false)
+                                                isLoading.invoke(false)
+                                                onVideoEnded.invoke()
+                                            }
+                                            else -> {}
+                                        }
+                                    }
+
+                                    override fun onCurrentSecond(youTubePlayer: YouTubePlayer, second: Float) {
+                                        currentSecond = second
+                                        if (currentSecond >= songList[index].startSecond + songList[index].pauseInterval) {
+                                            isPlaying.invoke(false)
+                                            youTubePlayer.pause()
+                                            onVideoEnded.invoke()
+                                            youTubePlayer.seekTo(songList[index].startSecond)
+                                        }
+                                    }
+                                }, playerOptions)
+                            }
+
+                            youTubePlayerView
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-                PlayerConstants.PlayerState.PLAYING -> {
-                    isLoading.invoke(false)
-                    isPlaying.invoke(true)
-                }
-                PlayerConstants.PlayerState.ENDED -> {
-                    isPlaying.invoke(false)
-                    isLoading.invoke(false)
-                    onVideoEnded.invoke()
-                }
-                else -> {}
             }
         }
 
-        override fun onError(
-            youTubePlayer: YouTubePlayer,
-            error: PlayerConstants.PlayerError
-        ) {
-            super.onError(youTubePlayer, error)
-            Log.e("iFramePlayer Error Reason", "$error")
-        }
-
-        override fun onCurrentSecond(youTubePlayer: YouTubePlayer, second: Float) {
-            currentSecond = second
-            if (currentSecond >= startSecond + pauseInterval) {
-                isPlaying.invoke(false)
-                youTubePlayer.pause()
-                onVideoEnded.invoke()
-                youTubePlayer.seekTo(startSecond)
+        DisposableEffect(Unit) {
+            onDispose {
+                players.values.forEach { it.pause() }
+                players.clear()
+                fullscreenContainers.clear()
             }
         }
-    }
 
-    val playerBuilder = IFramePlayerOptions.Builder().apply {
-        controls(1)
-        fullscreen(0)
-        autoplay(0)
-        rel(0)
-    }
-
-    AndroidView(
-        modifier = Modifier.background(Color.DarkGray),
-        factory = {
-            playerFragment.apply {
-                enableAutomaticInitialization = false
-                initialize(playerStateListener, playerBuilder.build())
-            }
-        }
-    )
-
-    DisposableEffect(key1 = Unit, effect = {
-        context.findActivity() ?: return@DisposableEffect onDispose {}
-        onDispose {
-            playerFragment.removeYouTubePlayerListener(playerStateListener)
-            playerFragment.release()
-            player = null
-        }
-    })
-
-    DisposableEffect(mLifeCycleOwner) {
-        val lifecycle = mLifeCycleOwner.lifecycle
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    player?.play()
-                }
-                Lifecycle.Event.ON_PAUSE -> {
-                    player?.pause()
-                }
-                else -> {
-                    //
+        DisposableEffect(mLifeCycleOwner) {
+            val lifecycle = mLifeCycleOwner.lifecycle
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> players.values.forEach { it.play() }
+                    Lifecycle.Event.ON_PAUSE -> players.values.forEach { it.pause() }
+                    else -> {}
                 }
             }
-        }
-        lifecycle.addObserver(observer)
-        onDispose {
-            lifecycle.removeObserver(observer)
+            lifecycle.addObserver(observer)
+            onDispose {
+                lifecycle.removeObserver(observer)
+            }
         }
     }
 }
