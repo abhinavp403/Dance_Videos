@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
@@ -129,16 +130,6 @@ fun YoutubeVideoPlayer(
     val players = remember { mutableStateMapOf<String, YouTubePlayer>() }
     val videoIds = songList.map { it.videoId }
 
-    // Handle back press behavior
-//    BackHandler(enabled = activeFullscreenPlayer != null) {
-//        if (activeFullscreenPlayer != null) {
-//            //player?.toggleFullscreen()
-//            activeFullscreenPlayer = null
-//        } else {
-//            activity?.finish()
-//        }
-//    }
-
     Box(Modifier.fillMaxSize()) {
         if (activeFullscreenPlayer != null) {
             AndroidView(
@@ -147,6 +138,14 @@ fun YoutubeVideoPlayer(
                     .background(Color.Black),
                 factory = { fullscreenContainers[activeFullscreenPlayer]!! }
             )
+
+            // Add BackHandler for fullscreen mode
+            BackHandler(enabled = true) {
+                players[activeFullscreenPlayer]?.toggleFullscreen()
+                players.values.forEach { it.pause() }
+                players.clear()
+                fullscreenContainers.clear()
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -174,13 +173,10 @@ fun YoutubeVideoPlayer(
 
                                 addFullscreenListener(object : FullscreenListener {
                                     override fun onEnterFullscreen(fullscreenView: View, exitFullscreen: () -> Unit) {
-                                        Log.d("YouTubePlayer", "onEnterFullscreen: ${ players[videoIds[index]].toString()}")
                                         activeFullscreenPlayer = videoIds[index]
 
                                         // Detach the fullscreen view from its current parent
-                                        (fullscreenView.parent as? ViewGroup)?.removeView(
-                                            fullscreenView
-                                        )
+                                        (fullscreenView.parent as? ViewGroup)?.removeView(fullscreenView)
 
                                         // Add fullscreen view to its container
                                         fullscreenContainers[videoIds[index]]?.apply {
@@ -195,7 +191,6 @@ fun YoutubeVideoPlayer(
                                     }
 
                                     override fun onExitFullscreen() {
-                                        Log.d("YouTubePlayer", "onExitFullscreen: ${ players[videoIds[index]].toString()}")
                                         activeFullscreenPlayer = null
 
                                         // Clear fullscreen container
