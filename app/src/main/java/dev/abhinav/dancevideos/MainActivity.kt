@@ -77,6 +77,36 @@ val song = listOf (
         startSecond = 125f,
         pauseInterval = 17f
     ),
+    Song(
+        name = "Twist",
+        videoId = splitLinkForVideoId(URL + "v=KgmeL_xuB0I"),
+        startSecond = 98f,
+        pauseInterval = 8f
+    ),
+    Song(
+        name = "I Hate Luv Storys",
+        videoId = splitLinkForVideoId(URL + "v=FDzYegv8JHE"),
+        startSecond = 60f,
+        pauseInterval = 14f
+    ),
+    Song(
+        name = "Paisa Paisa",
+        videoId = splitLinkForVideoId(URL + "v=r03GO2AlNUo"),
+        startSecond = 109f,
+        pauseInterval = 18f
+    ),
+    Song(
+        name = "It's Magic",
+        videoId = splitLinkForVideoId(URL + "v=3ODLvGxzr5U"),
+        startSecond = 79f,
+        pauseInterval = 16f
+    ),
+    Song(
+        name = "The Disco Song",
+        videoId = splitLinkForVideoId(URL + "v=mcL6ZErM49Q"),
+        startSecond = 73f,
+        pauseInterval = 20f
+    ),
 )
 
 class MainActivity : ComponentActivity() {
