@@ -297,7 +297,6 @@ fun YoutubeVideoPlayer(
             val lifecycle = mLifeCycleOwner.lifecycle
             val observer = LifecycleEventObserver { _, event ->
                 when (event) {
-                    Lifecycle.Event.ON_RESUME -> players.values.forEach { it.play() }
                     Lifecycle.Event.ON_PAUSE -> players.values.forEach { it.pause() }
                     else -> {}
                 }
