@@ -4,5 +4,5 @@ dance move much faster. Each video can also be toggeable to view in fullscreen f
 
 Libraries Used-
 
-Jetpack Compose
-Android Youtube Player
+1. Jetpack Compose
+2. Android Youtube Player
