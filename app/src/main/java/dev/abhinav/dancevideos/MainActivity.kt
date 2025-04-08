@@ -107,6 +107,36 @@ val song = listOf (
         startSecond = 73f,
         pauseInterval = 20f
     ),
+    Song(
+        name = "Akhiyaan Gulaab",
+        videoId = splitLinkForVideoId(URL + "v=r-BAhGM-dmA"),
+        startSecond = 52f,
+        pauseInterval = 20f
+    ),
+    Song(
+        name = "Bang Bang",
+        videoId = splitLinkForVideoId(URL + "v=jZyAB2KFDls"),
+        startSecond = 72f,
+        pauseInterval = 22f
+    ),
+    Song(
+        name = "Ghungroo",
+        videoId = splitLinkForVideoId(URL + "v=qFkNATtc3mc"),
+        startSecond = 60f,
+        pauseInterval = 8f
+    ),
+    Song(
+        name = "Nashe Si Chadh Gayi",
+        videoId = splitLinkForVideoId(URL + "v=HoCwa6gnmM0"),
+        startSecond = 39f,
+        pauseInterval = 15f
+    ),
+    Song(
+        name = "Harry Is Not A Brahmachari",
+        videoId = splitLinkForVideoId(URL + "v=0CKCyP7fp68"),
+        startSecond = 50f,
+        pauseInterval = 20f
+    ),
 )
 
 class MainActivity : ComponentActivity() {
