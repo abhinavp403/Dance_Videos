@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -189,6 +190,7 @@ fun YoutubeVideoPlayer(
     val fullscreenContainers = remember { mutableStateMapOf<String, FrameLayout>() }
     val players = remember { mutableStateMapOf<String, YouTubePlayer>() }
     val videoIds = songList.map { it.videoId }
+    val listState = rememberLazyListState()
 
     Box(Modifier.fillMaxSize()) {
         if (activeFullscreenPlayer != null) {
@@ -209,6 +211,7 @@ fun YoutubeVideoPlayer(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
+                state = listState
             ) {
                 items(videoIds.size) { index ->
                     MusicVideoText(
